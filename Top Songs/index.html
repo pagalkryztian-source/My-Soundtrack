@@ -970,6 +970,7 @@
        ========================================================================== */
     let indexedData = [];
     let selectedArtistFilter = "ALL";
+    const searchCache = new Map(); // O(1) Cache for Search Optimization
     
     // Store YouTube Player instances to pause/play and detect end state
     let ytPlayers = {}; 
@@ -1003,6 +1004,15 @@
       // Render Navigation & Quick Chips
       renderSidebarNav();
       renderQuickChips();
+
+      // OPTIMIZATION: Event Delegation for Music Cards (O(1) Memory listener)
+      // Replaces inline onclick="playVideo(this)" which bloats the DOM
+      document.getElementById("musicContainer").addEventListener("click", function(e) {
+        const facade = e.target.closest('.video-facade-container');
+        if (facade) {
+          playVideo(facade);
+        }
+      });
     }
 
     /* ==========================================================================
@@ -1012,11 +1022,12 @@
       const navList = document.getElementById("artistNavList");
       const cleanFilter = filterTerm.toLowerCase().trim();
 
-      let navHTML = "";
+      // OPTIMIZATION: Array Push String Builder
+      const navChunks = [];
       indexedData.forEach((item) => {
         if (!cleanFilter || item.artist.toLowerCase().includes(cleanFilter)) {
           const isActive = selectedArtistFilter === item.slug ? "active" : "";
-          navHTML += `
+          navChunks.push(`
             <li>
               <a class="artist-nav-item ${isActive}" onclick="scrollToArtist('${item.slug}')">
                 <img src="${item.image}" alt="${item.artist}" class="artist-nav-avatar" loading="lazy" />
@@ -1024,11 +1035,11 @@
                 <span class="artist-nav-badge">${item.songs.length}</span>
               </a>
             </li>
-          `;
+          `);
         }
       });
 
-      navList.innerHTML = navHTML || `<li style="padding: 12px; color: var(--text-muted); font-size: 0.8rem; text-align: center;">No artists found</li>`;
+      navList.innerHTML = navChunks.length > 0 ? navChunks.join("") : `<li style="padding: 12px; color: var(--text-muted); font-size: 0.8rem; text-align: center;">No artists found</li>`;
     }
 
     function filterSidebarArtists() {
@@ -1041,14 +1052,14 @@
        ========================================================================== */
     function renderQuickChips() {
       const container = document.getElementById("quickChipsContainer");
-      let chipsHTML = `<button class="chip-btn ${selectedArtistFilter === 'ALL' ? 'active' : ''}" onclick="filterByChip('ALL')">All Artists</button>`;
+      const chipsChunks = [`<button class="chip-btn ${selectedArtistFilter === 'ALL' ? 'active' : ''}" onclick="filterByChip('ALL')">All Artists</button>`];
       
       indexedData.forEach((item) => {
         const isActive = selectedArtistFilter === item.slug ? "active" : "";
-        chipsHTML += `<button class="chip-btn ${isActive}" onclick="filterByChip('${item.slug}')">${item.artist}</button>`;
+        chipsChunks.push(`<button class="chip-btn ${isActive}" onclick="filterByChip('${item.slug}')">${item.artist}</button>`);
       });
 
-      container.innerHTML = chipsHTML;
+      container.innerHTML = chipsChunks.join("");
     }
 
     function filterByChip(slug) {
@@ -1081,11 +1092,19 @@
     function renderPlaylists(filterQuery = "") {
       const container = document.getElementById("musicContainer");
       const query = filterQuery.toLowerCase().trim();
+      const cacheKey = `${selectedArtistFilter}|${query}`;
+
+      // OPTIMIZATION: O(1) Cache lookup for instant search renders
+      if (searchCache.has(cacheKey)) {
+        container.innerHTML = searchCache.get(cacheKey);
+        ytPlayers = {}; // Reset tracking array when swapping DOM out
+        return;
+      }
 
       // Reset instances on re-render to prevent memory leak build-up
       ytPlayers = {}; 
 
-      let outputHTML = "";
+      const outputChunks = []; // OPTIMIZATION: Array buffer for O(N) string building
       let totalMatches = 0;
 
       indexedData.forEach((artistGroup) => {
@@ -1102,8 +1121,7 @@
         if (matchingSongs.length > 0) {
           totalMatches += matchingSongs.length;
 
-          // Build Section HTML String
-          outputHTML += `
+          outputChunks.push(`
             <section class="artist-section" id="${artistGroup.slug}">
               <div class="artist-header-card">
                 <div class="artist-profile-info">
@@ -1114,21 +1132,18 @@
                   </div>
                 </div>
               </div>
-
               <div class="music-grid">
-          `;
+          `);
 
-          // Build Music Cards with Video Facades
           matchingSongs.forEach((track) => {
             const cleanId = track.id.replace('?', '');
             const thumbUrl = `https://img.youtube.com/vi/${cleanId}/hqdefault.jpg`;
             const safeTitle = escapeHTML(track.title);
 
-            // CHANGED: Using data-* attributes heavily prevents string escaping bugs 
-            // inside JS inline function calls which previously broke "Taylor's Version"
-            outputHTML += `
+            // OPTIMIZATION: Removed inline onclick for Event Delegation support
+            outputChunks.push(`
               <div class="music-card">
-                <div class="video-facade-container" data-vid="${cleanId}" data-title="${safeTitle}" onclick="playVideo(this)">
+                <div class="video-facade-container" data-vid="${cleanId}" data-title="${safeTitle}">
                   <img src="${thumbUrl}" alt="${safeTitle}" class="thumbnail" loading="lazy" />
                   <div class="play-overlay-btn" title="Click to play">
                     <i class="fa-solid fa-play"></i>
@@ -1146,27 +1161,30 @@
                   </div>
                 </div>
               </div>
-            `;
+            `);
           });
 
-          outputHTML += `
+          outputChunks.push(`
               </div>
             </section>
-          `;
+          `);
         }
       });
 
-      if (totalMatches === 0) {
-        container.innerHTML = `
+      const finalHTML = totalMatches === 0 
+        ? `
           <div class="empty-state">
             <i class="fa-solid fa-compact-disc"></i>
             <h3>No soundtrack found</h3>
             <p>No results matching "${filterQuery}". Try searching for another artist or track title.</p>
           </div>
-        `;
-      } else {
-        container.innerHTML = outputHTML;
-      }
+          ` 
+        : outputChunks.join("");
+
+      container.innerHTML = finalHTML;
+      
+      // Save built string to cache for instant retrieval next time
+      searchCache.set(cacheKey, finalHTML);
     }
 
     /* ==========================================================================
