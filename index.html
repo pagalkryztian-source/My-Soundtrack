@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Soundtrack • Premium Music Showcase</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <style>
+    /* ==========================================================================
+       RESET & ROOT VARIABLES (HARDWARE ACCELERATED)
+       ========================================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    :root {
+      --bg-base: #050505;
+      --bg-surface: #0a0a0a;
+      --bg-card: #121212;
+      --bg-hover: #1a1a1a;
+      --border-color: #262626;
+      --border-focus: #e5e5e5;
+      --accent-primary: #ffffff;
+      --accent-secondary: #a3a3a3;
+      --text-main: #f5f5f5;
+      --text-muted: #8a8a8a;
+      --sidebar-width: 280px;
+      --header-height: 72px;
+      --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-smooth: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+    /* ==========================================================================
+       LAYOUT & SIDEBAR
+       ========================================================================== */
+    .app-container { display: flex; width: 100%; min-height: 100vh; position: relative; }
+    
+    .sidebar-overlay {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(8px); z-index: 200; opacity: 0; pointer-events: none;
+      transition: opacity var(--transition-smooth);
+    }
+    .sidebar-overlay.active { opacity: 1; pointer-events: auto; }
+
+    aside.sidebar {
+      width: var(--sidebar-width); background-color: var(--bg-surface);
+      border-right: 1px solid var(--border-color); display: flex; flex-direction: column;
+      position: fixed; top: 0; bottom: 0; left: 0; z-index: 250;
+      transition: transform var(--transition-smooth);
+    }
+
+    .sidebar-header {
+      padding: 24px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .sidebar-brand { display: flex; align-items: center; gap: 12px; font-size: 1.1rem; font-weight: 700; letter-spacing: -0.5px; }
+    .sidebar-brand i { font-size: 1.4rem; color: var(--accent-primary); }
+    
+    .close-sidebar-btn {
+      background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; display: none;
+    }
+
+    .sidebar-search { padding: 20px 24px 10px; }
+    .sidebar-search-box { position: relative; }
+    .sidebar-search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem; }
+    .sidebar-search-box input {
+      width: 100%; background: var(--bg-base); border: 1px solid var(--border-color);
+      border-radius: 8px; padding: 10px 14px 10px 38px; color: var(--text-main); font-size: 0.85rem; outline: none; transition: border var(--transition-fast);
+    }
+    .sidebar-search-box input:focus { border-color: var(--border-focus); }
+
+    .sidebar-menu-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); font-weight: 700; padding: 16px 24px 8px; }
+    
+    .artist-nav-list { list-style: none; overflow-y: auto; flex: 1; padding: 0 16px 24px; }
+    .artist-nav-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px;
+      color: var(--text-muted); font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all var(--transition-fast); margin-bottom: 2px;
+    }
+    .artist-nav-item:hover, .artist-nav-item.active { background: var(--bg-card); color: var(--text-main); }
+    .artist-nav-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+    .artist-nav-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ==========================================================================
+       MAIN CONTENT
+       ========================================================================== */
+    .main-wrapper { flex: 1; margin-left: var(--sidebar-width); display: flex; flex-direction: column; min-width: 0; transition: margin-left var(--transition-smooth); }
+
+    header.top-header {
+      height: var(--header-height); background: rgba(5, 5, 5, 0.8); backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between; padding: 0 32px;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 20px; flex: 1; }
+    .toggle-sidebar-btn {
+      background: transparent; border: 1px solid var(--border-color); color: var(--text-main);
+      width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all var(--transition-fast);
+    }
+    .toggle-sidebar-btn:hover { background: var(--bg-hover); border-color: var(--text-muted); }
+
+    .global-search { position: relative; width: 100%; max-width: 400px; }
+    .global-search i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.9rem; }
+    .global-search input {
+      width: 100%; background: var(--bg-card); border: 1px solid var(--border-color);
+      border-radius: 24px; padding: 10px 20px 10px 42px; color: var(--text-main); font-size: 0.88rem; outline: none; transition: all var(--transition-fast);
+    }
+    .global-search input:focus { border-color: var(--text-muted); background: var(--bg-hover); }
+
+    .header-stats { display: flex; gap: 12px; }
+    .stat-pill {
+      background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-muted);
+      padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; gap: 6px;
+    }
+
+    main.content-area { max-width: 1600px; width: 100%; margin: 0 auto; padding: 40px; flex: 1; }
+
+    /* ==========================================================================
+       HERO & FILTERS
+       ========================================================================== */
+    .hero-banner { margin-bottom: 40px; }
+    .hero-banner h2 { font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; }
+    .hero-banner p { color: var(--text-muted); font-size: 1rem; max-width: 600px; }
+
+    .quick-chips-container {
+      display: flex; gap: 10px; overflow-x: auto; padding-bottom: 16px; margin-bottom: 32px; scrollbar-width: none;
+    }
+    .quick-chips-container::-webkit-scrollbar { display: none; }
+    .chip-btn {
+      background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-muted);
+      padding: 8px 20px; border-radius: 24px; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all var(--transition-fast);
+    }
+    .chip-btn:hover, .chip-btn.active { background: var(--accent-primary); color: var(--bg-base); border-color: var(--accent-primary); }
+
+    /* ==========================================================================
+       MUSIC GRID & CARDS
+       ========================================================================== */
+    .artist-section { margin-bottom: 64px; scroll-margin-top: calc(var(--header-height) + 32px); content-visibility: auto; contain-intrinsic-size: 500px; }
+    
+    .artist-header-card {
+      display: flex; align-items: center; gap: 20px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);
+    }
+    .artist-avatar-lg { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; }
+    .artist-meta h3 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+    .artist-meta span { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
+
+    .music-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+
+    .music-card {
+      background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px;
+      overflow: hidden; display: flex; flex-direction: column; transition: transform var(--transition-smooth), border-color var(--transition-fast);
+      animation: fadeUp 0.5s ease-out forwards; opacity: 0; transform: translateY(10px);
+    }
+    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+    .music-card:hover { border-color: #404040; transform: translateY(-4px); }
+
+    .video-facade-container {
+      position: relative; width: 100%; padding-top: 56.25%; background-color: #000; cursor: pointer; overflow: hidden;
+    }
+    .video-facade-container img.thumbnail {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; opacity: 0;
+    }
+    .video-facade-container img.thumbnail.loaded { opacity: 1; }
+    .music-card:hover .video-facade-container img.thumbnail { transform: scale(1.03); }
+
+    .play-overlay-btn {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 48px; height: 48px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1rem; transition: all var(--transition-fast); padding-left: 4px;
+    }
+    .video-facade-container:hover .play-overlay-btn { background: #fff; color: #000; transform: translate(-50%, -50%) scale(1.1); }
+    .video-facade-container iframe, .video-facade-container div[id^="yt-"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+
+    .card-body { padding: 20px; display: flex; flex-direction: column; flex: 1; }
+    .card-title { font-size: 1.05rem; font-weight: 600; line-height: 1.4; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .card-artist-name { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px; }
+
+    /* ==========================================================================
+       COMMENTS SYSTEM UI
+       ========================================================================== */
+    .card-footer {
+      margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;
+    }
+    .action-btn {
+      background: transparent; border: none; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: color var(--transition-fast); font-family: inherit;
+    }
+    .action-btn:hover { color: var(--text-main); }
+    
+    .comments-panel {
+      display: none; flex-direction: column; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border-color); animation: fadeIn 0.2s ease;
+    }
+    .comments-panel.open { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    
+    .comment-list { display: flex; flex-direction: column; gap: 10px; max-height: 120px; overflow-y: auto; padding-right: 4px; }
+    .comment-item { background: var(--bg-hover); padding: 10px 12px; border-radius: 8px; font-size: 0.8rem; }
+    .comment-author { font-weight: 700; color: var(--accent-primary); margin-bottom: 2px; display: flex; justify-content: space-between; }
+    .comment-date { color: var(--text-muted); font-weight: 400; font-size: 0.7rem; }
+    
+    .comment-input-area { display: flex; gap: 8px; }
+    .comment-input-area input {
+      flex: 1; background: var(--bg-hover); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; color: var(--text-main); font-size: 0.8rem; outline: none; font-family: inherit;
+    }
+    .comment-input-area input:focus { border-color: #555; }
+    .comment-input-area button {
+      background: var(--accent-primary); color: var(--bg-base); border: none; border-radius: 6px; padding: 0 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit;
+    }
+
+    /* EMPTY STATE */
+    .empty-state { text-align: center; padding: 80px 20px; border-radius: 12px; }
+    .empty-state i { font-size: 2.5rem; color: var(--border-color); margin-bottom: 16px; }
+    .empty-state h3 { font-size: 1.2rem; font-weight: 600; margin-bottom: 8px; }
+    .empty-state p { color: var(--text-muted); font-size: 0.9rem; }
+
+    footer { text-align: center; padding: 32px; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid var(--border-color); }
+
+    /* ==========================================================================
+       RESPONSIVE MOBILE DESIGN
+       ========================================================================== */
+    @media (max-width: 1024px) {
+      aside.sidebar { transform: translateX(-100%); }
+      aside.sidebar.mobile-open { transform: translateX(0); }
+      .close-sidebar-btn { display: block; }
+      .main-wrapper { margin-left: 0; }
+    }
+    @media (max-width: 640px) {
+      header.top-header { padding: 0 20px; }
+      main.content-area { padding: 24px 20px; }
+      .hero-banner h2 { font-size: 1.8rem; }
+      .header-stats { display: none; }
+      .music-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <i class="fa-solid fa-play"></i>
+          <span>Soundtrack</span>
+        </div>
+        <button class="close-sidebar-btn" onclick="closeSidebar()" aria-label="Close Sidebar"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="sidebar-search">
+        <div class="sidebar-search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="sidebarSearchInput" placeholder="Filter directory..." oninput="filterSidebarArtists()" />
+        </div>
+      </div>
+      <div class="sidebar-menu-title">Artists Directory</div>
+      <ul class="artist-nav-list" id="artistNavList"></ul>
+    </aside>
+
+    <div class="main-wrapper">
+      <header class="top-header">
+        <div class="header-left">
+          <button class="toggle-sidebar-btn" onclick="toggleSidebar()" aria-label="Toggle Navigation"><i class="fa-solid fa-bars-staggered"></i></button>
+          <div class="global-search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="searchInput" placeholder="Search track, artist, or keywords..." oninput="handleGlobalSearch()" />
+          </div>
+        </div>
+        <div class="header-stats">
+          <div class="stat-pill"><span id="totalArtistsBadge">0</span> Artists</div>
+          <div class="stat-pill"><span id="totalTracksBadge">0</span> Tracks</div>
+        </div>
+      </header>
+
+      <main class="content-area">
+        <div class="hero-banner">
+          <h2>My Personal Library</h2>
+          <p>A minimalist collection of essential soundtracks, meticulously organized for speed and playback.</p>
+        </div>
+        <div class="quick-chips-container" id="quickChipsContainer"></div>
+        <div id="musicContainer"></div>
+      </main>
+
+      <footer><p>&copy; 2026 Personal Soundtrack Showcase • Engineered for Speed.</p></footer>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       1. DATA STRUCTURE WITH COMMENTS EXTENSION
+       ========================================================================== */
+    const artistsData = [
+      {
+        artist: "Taylor Swift",
+        image: "assets/images.jpeg",
+        songs: [
+          { id: "h_wr-9X47ao", title: "Renegade (feat. Taylor Swift)", comments: [{author: "Guest", text: "Incredible songwriting.", date: "Oct 2"}] },
+          { id: "kXOKQCtttbw", title: "Pink Clouding (Official Lyric Video)", comments: []},
+          { id: "HZIg5sQrPAM", title: "Fortnight (feat. Post Malone) (Acoustic)", comments: [] },
+          { id: "6InmFjIVAv0", title: "Last Kiss (Taylor's Version)", comments: [] },
+          { id: "wMpqCRF7TKg", title: "champagne problems", comments: [] },
+          { id: "Ur_wAcYDnuA", title: "right where you left me", comments: [] },
+          { id: "QUwxKWT6m7U", title: "Back To December", comments: [] },
+          { id: "P8Z9kl67-yg", title: "You're Losing Me (From The Vault)", comments: [] },
+          { id: "osdoLjUNFnA", title: "exile (feat. Bon Iver)", comments: [] },
+          { id: "sRxrwjOtIag", title: "All Too Well (10 Minute Version)", comments: [] },
+          { id: "R_rUYuFtNO4", title: "Red (Taylor's Version)", comments: [] },
+          { id: "ko70cExuzZM", title: "The Fate of Ophelia", comments: [] },
+          { id: "nN6VR92V70M", title: "The Story Of Us (Taylor's Version)", comments: [] },
+          { id: "Mxxswu7V1Us", title: "Peter (Official Lyric Video)", comments: []},
+          { id: "PReSQYTFvcs", title: "Better Man (Taylor's Version)", comments: []},
+          { id: "GZ4vaTRn0HU", title: "loml (Official Lyric Video)", comments: []}
+        ]
+      },
+      {
+        artist: "Beabadoobee",
+        image: "assets/images2.jpeg",
+        songs: [
+          { id: "4SeE6rJrnfc", title: "the way things go", comments: [{author: "User12", text: "Vibes are unmatched.", date: "Oct 1"}] },
+          { id: "3WpdCZC9q6w", title: "the perfect pair", comments: [] },
+          { id: "F7CWjv0gcfQ", title: "You're here that's the thing", comments: [] },
+          { id: "nl0e7yzOUwM", title: "Real Man", comments: [] },
+          { id: "qV91x2YT9zI", title: "All I Did Was Dream Of You ft. The Marías", comments: [] }
+        ]
+      },
+      {
+        artist: "The 1975", image: "assets/images3.jpeg",
+        songs: [
+          { id: "tGv7CUutzqU", title: "About You (Official)", comments: [] },
+          { id: "wjHgiSx0RNQ", title: "Robbers", comments: [] },
+          { id: "trbwqF0d7NA", title: "A Change Of Heart (Official Video)", comments: [] },
+          { id: "W3JJxS0gNkE", title: "fallingforyou", comments: [] }
+        ]
+      },
+      {
+        artist: "Joji", image: "assets/images4.jpeg",
+        songs: [
+          { id: "NgsWGfUlwJI", title: "Glimpse of Us (Official Video)", comments: [] },
+          { id: "YWN81V7ojOE", title: "Sanctuary (Official Video)", comments: [] },
+          { id: "acA8Rr3gEco", title: "Past Won't Leave My Bed", comments: [] },
+          { id: "fuz9LP4tP4g", title: "LOVE YOU LESS", comments: [] },
+          { id: "BHu5JM1v7dY", title: "Die For You", comments: [] },
+          { id: "4De_ERjvuUI", title: "SLOW DANCING IN THE DARK", comments: [] },
+          { id: "jPan651rVMs", title: "Gimme Love", comments: [] },
+          { id: "Os4HO32m4iM", title: "Like You Do", comments: [] }
+        ]
+      },
+      {
+        artist: "Bleachers", image: "assets/images5.jpeg",
+        songs: [
+          { id: "gwmIfKy7kEQ", title: "Merry Christmas, i miss you", comments: [] },
+          { id: "aBpYk9vuneE", title: "Merry Christmas, Please Don't Call", comments: [] },
+          { id: "MoLD4vb0zvQ", title: "Isimo", comments: [] },
+          { id: "E4uA85iWsIg", title: "Chinatown ft. Bruce Springsteen", comments: [] },
+          { id: "tqNAMgFesSY", title: "Don't Take The Money", comments: [] },
+          { id: "LibjUBlLX6o", title: "Rollercoaster", comments: [] }
+        ]
+      },
+      {
+        artist: "Mitski", image: "assets/Untitled.jpeg",
+        songs: [
+          { id: "mHKTdlUyyko", title: "Francis Forever", comments: [] },
+          { id: "DVIaDzs1EH4", title: "First Love/Late Spring", comments: [] },
+          { id: "XfMBdq5iFnw", title: "I Bet on Losing Dogs", comments: [] },
+          { id: "BjGB9hc5huk", title: "Your Best American Girl", comments: [] },
+          { id: "xhqn-SeGDd0", title: "Once More to See You", comments: [] }
+        ]
+      },
+      {
+        artist: "The Neighbourhood", image: "assets/ac4981bf724be0bcb967a6ef057f1480.1000x1000x1.png",
+        songs: [
+          { id: "x47TgeRJtH0", title: "Reflections", comments: [] },
+          { id: "WkNE5WGyz0k", title: "Baby Came Home 2 / Valentines", comments: [] },
+          { id: "ggG9ySCChYw", title: "Softcore", comments: [] },
+          { id: "lqSgsq4Bn2c", title: "Daddy Issues", comments: [] },
+          { id: "gWuBfqQYOAE", title: "Pretty Boy", comments: [] },
+          { id: "DujKJ1OaLQE", title: "The Beach", comments: [] },
+          { id: "bRfMwoIizTQ", title: "A Little Death", comments: [] }
+        ]
+      },
+      {
+        artist: "Billie Eilish", image: "assets/images6.jpeg",
+        songs: [
+          { id: "l08Zw-RY__Q", title: "WILDFLOWER", comments: [] },
+          { id: "WkdQhfDRBKs", title: "THE GREATEST", comments: [] },
+          { id: "am5FI9DkO80", title: "L'AMOUR DE MA VIE", comments: [] },
+          { id: "_JGGLJMpVks", title: "TV", comments: [] },
+          { id: "5GJWxDKyk3A", title: "Happier Than Ever", comments: [] },
+          { id: "EgBJmlPo8Xw", title: "everything i wanted", comments: [] },
+          { id: "ClyVKnfBIO8", title: "BITTERSUITE", comments: [] }
+        ]
+      },
+      {
+        artist: "Arctic Monkeys", image: "assets/Untitled1.jpeg",
+        songs: [
+          { id: "bpOSxM0rNPM", title: "Do I Wanna Know?", comments: [] },
+          { id: "H8tLS_NOWLs", title: "Snap Out Of It", comments: [] },
+          { id: "3PyoxMSEHYI", title: "Stop The World I Wanna Get Off With You", comments: [] },
+          { id: "VsxlqmSDmBU", title: "Why'd You Only Call Me When You're High?", comments: [] },
+          { id: "lyO-Sveg6a8", title: "Knee Socks", comments: [] },
+          { id: "giLpYG11qxQ", title: "R U Mine?", comments: [] },
+          { id: "od2q-e5K-Zc", title: "Fluorescent Adolescent", comments: [] },
+          { id: "qU9mHegkTc4", title: "505", comments: [] },
+          { id: "nyuo9-OjNNg", title: "I Wanna Be Yours", comments: [] },
+          { id: "NcodyqfytRI", title: "No. 1 Party Anthem [AM]", comments: [] },
+          { id: "f9HF0DJ1cu8", title: "Secret Door", comments: [] },
+          { id: "80oOFk5tYps", title: "Arabella", comments: [] }
+        ]
+      },
+      {
+        artist: "TV Girl", image: "assets/images7.jpeg",
+        songs: [
+          { id: "j_sG_Juncn8", title: "Lovers Rock", comments: [] },
+          { id: "oRqJ0EFXmgo", title: "The Blonde", comments: [] },
+          { id: "abW7Cr9Vo_M", title: "Blue Hair", comments: [] },
+          { id: "5tpQaCAq6Qc", title: "Loving Machine", comments: [] },
+          { id: "r0xTqwKMOyk", title: "Not Allowed", comments: [] }
+        ]
+      },
+      {
+        artist: "Clairo", image: "assets/images8.jpeg",
+        songs: [
+          { id: "f43ODtOUmBw", title: "Flamin Hot Cheetos", comments: [] },
+          { id: "L9HYJbe9Y18", title: "Bags", comments: [] },
+          { id: "xF1Yu-amFfk", title: "Sofia", comments: [] },
+          { id: "i_rw1C9eG_Q", title: "Juna", comments: [] },
+          { id: "VR8ooa3G_5M", title: "Amoeba", comments: [] },
+          { id: "8BH5sxq1yaI", title: "Slow Dance", comments: [] },
+          { id: "Heuxm7pZ-Fs", title: "Pretty Girl", comments: [] },
+          { id: "4ptgVKcTYsE", title: "Bubble Gum", comments: [] },
+          { id: "cz2kppE7MA0", title: "lying has to stop", comments: [] }
+        ]
+      },
+      {
+        artist: "Faye Webster", image: "assets/images9.jpeg",
+        songs: [
+          { id: "-5_tGEao_GQ", title: "Kingston", comments: [] },
+          { id: "GNJTdyESMgk", title: "Kind Of", comments: [] },
+          { id: "s7olpccix-w", title: "In A Good Way", comments: [] },
+          { id: "o0tqEQ331go", title: "I Know You", comments: [] },
+          { id: "tpdrvoHoKsU", title: "She Won't Go Away", comments: [] }
+        ]
+      },
+      {
+        artist: "Lana Del Rey", image: "assets/ab67616d0000b273cb76604d9c5963544cf5be64.jpeg",
+        songs: [
+          { id: "WJlQ4jt5Fz4", title: "Let The Light In ft. Father John Misty", comments: [] },
+          { id: "Bag1gUxuU0g", title: "Born To Die", comments: [] },
+          { id: "o_1aF54DO60", title: "Young and Beautiful", comments: [] },
+          { id: "DCYmJDO2_IE", title: "Cinnamon Girl", comments: [] },
+          { id: "ntZONYzAMCo", title: "Brooklyn Baby", comments: [] },
+          { id: "GVQON-muEFc", title: "Salvatore", comments: [] },
+          { id: "fRQg_9ulGuI", title: "Summertime Sadness", comments: [] },
+          { id: "MiAoetOXKcY", title: "Say Yes To Heaven", comments: [] },
+          { id: "jvm6DpqqbLk", title: "Sad Girl", comments: [] },
+          { id: "QbLGjeR9bvI", title: "Art Deco", comments: [] },
+          { id: "o7e4IfE0ScI", title: "Radio", comments: [] },
+          { id: "SNiInqEFdQk", title: "West Coast", comments: [] },
+          { id: "78bkjR4RWhY", title: "White Mustang", comments: [] },
+          { id: "EJSk2RySqKg", title: "Ultraviolence", comments: [] }
+        ]
+      },
+      {
+        artist: "Oasis", image: "assets/images10.jpeg",
+        songs: [
+          { id: "tI-5uv4wryI", title: "Champagne Supernova", comments: [] },
+          { id: "EOoidN2s5qY", title: "Married With Children", comments: [] },
+          { id: "maTP315XZCQ", title: "Stand By Me", comments: [] },
+          { id: "cmpRLQZkTb8", title: "Don't Look Back In Anger", comments: [] },
+          { id: "bx1Bh8ZvH84", title: "Wonderwall", comments: [] },
+          { id: "dhZUsNJ-LQU", title: "Stop Crying Your Heart Out", comments: [] },
+          { id: "EHfx9LXzxpw", title: "Whatever", comments: [] }
+        ]
+      },
+      {
+        artist: "Chappell Roan", image: "assets/images11.jpeg",
+        songs: [
+          { id: "_4BBA8y3DPc", title: "Casual", comments: [] },
+          { id: "VZ-oGLluGAc", title: "Good Luck, Babe!", comments: [] },
+          { id: "QBAmGTv11yY", title: "My Kink Is Karma", comments: [] }
+        ]
+      },
+      {
+        artist: "Paramore", image: "assets/ParamoreParamore.png",
+        songs: [
+          { id: "OblL026SvD4", title: "Still Into You", comments: [] },
+          { id: "W7nmB20qJv4", title: "All I Wanted", comments: [] },
+          { id: "-J7J_IWUhls", title: "The Only Exception", comments: [] },
+          { id: "1VPotzhpAGE", title: "Misery Business", comments: [] }
+        ]
+      },
+      {
+        artist: "My Chemical Romance", image: "assets/Blackparadecover.jpg",
+        songs: [
+          { id: "pyi0ZfuIIvo", title: "I Don't Love You", comments: [] },
+          { id: "fjpaZQwr30I", title: "Cancer", comments: [] },
+          { id: "jLKOBJR5vHs", title: "Teenagers", comments: [] },
+          { id: "v_uncMEJkBc", title: "Welcome to the Black Parade", comments: [] },
+          { id: "j_MlBCb9-m8", title: "Disenchanted", comments: [] },
+          { id: "a_1tA0bpDQs", title: "Helena", comments: [] }
+        ]
+      },
+      {
+        artist: "Green Day", image: "assets/images12.jpeg",
+        songs: [
+          { id: "NUTGr5t3MoY", title: "Basket Case", comments: [] },
+          { id: "pGhwBFYtn1s", title: "Wake Me Up When September Ends", comments: [] },
+          { id: "hBvJyi3fbtA", title: "Boulevard of Broken Dreams", comments: [] },
+          { id: "U0XcqF7rqHk", title: "21 Guns", comments: [] },
+          { id: "xg_Y7Or_hWM", title: "Last Night on Earth", comments: [] }
+        ]
+      },
+      {
+        artist: "Olivia Rodrigo", image: "assets/images13.jpeg",
+        songs: [
+          { id: "RlPNh_PBZb4", title: "vampire", comments: [] },
+          { id: "cii6ruuycQA", title: "deja vu", comments: [] },
+          { id: "B402rKl4bUg", title: "the cure", comments: [] },
+          { id: "78wrful9cVU", title: "drop dead", comments: [] },
+          { id: "GlM6lcFbLSg", title: "Can't Catch Me Now", comments: [] }
+        ]
+      },
+      {
+        artist: "NIKI", image: "assets/ab67616d0000b27389aa3d00d339b8948374782b.jpeg",
+        songs: [
+          { id: "toHJ3yp4TY8", title: "Autumn", comments: [] },
+          { id: "yHolH72dJzE", title: "Oceans & Engines", comments: [] },
+          { id: "quurkAg2xXY", title: "The Apartment We Won't Share", comments: [] },
+          { id: "bn47w50T8cY", title: "Paths", comments: [] },
+          { id: "ErmgY5GX_wI", title: "La La Lost You", comments: [] },
+          { id: "OXtZfPZIex4", title: "Every Summertime", comments: [] },
+          { id: "d4CF4km1rUQ", title: "High School in Jakarta", comments: [] }
+        ]
+      },
+      {
+        artist: "Big Thief", image: "assets/images14.jpeg",
+        songs: [
+          { id: "0fbA_agbrOg", title: "Paul", comments: [] },
+          { id: "hz3ly6nH3Ms", title: "Velvet Ring", comments: [] },
+          { id: "RKFyZlfufvQ", title: "Objects", comments: [] }
+        ]
+      },
+      {
+        artist: "Phoebe Bridgers", image: "assets/images15.jpeg",
+        songs: [
+          { id: "W-Khe7DInxo", title: "Scott Street", comments: [] },
+          { id: "VUOwg6nhuzA", title: "Waiting Room", comments: [] },
+          { id: "iMr69JihnP4", title: "Motion Sickness", comments: [] },
+          { id: "3c-wRm0_0bY", title: "Sidelines", comments: [] }
+        ]
+      },
+      {
+        artist: "Gracie Abrams", image: "assets/images16.jpeg",
+        songs: [
+          { id: "0Im2f0xE8vA", title: "Best", comments: [] },
+          { id: "vIalke0YE_Y", title: "I know it won't work", comments: [] },
+          { id: "nijx6Np0o40", title: "I miss you, I'm sorry", comments: [] },
+          { id: "AOz9V0NhJe8", title: "That's So True", comments: [] }
+        ]
+      },
+      {
+        artist: "Ashe", image: "assets/images17.jpeg",
+        songs: [
+          { id: "DLV8FpyxZPQ", title: "Stop The Wedding!", comments: [] },
+          { id: "WQq98YPV8yk", title: "Moral of the Story", comments: [] }
+        ]
+      },
+      {
+        artist: "Grimes", image: "assets/images18.jpeg",
+        songs: [
+          { id: "WizNXQGBMEk", title: "Genesis", comments: [] },
+          { id: "S8HrvII7gU0", title: "Oblivion", comments: [] },
+          { id: "N9XKLqGqwLA", title: "REALiTi", comments: [] }
+        ]
+      },
+      {
+        artist: "Hey Violet", image: "assets/images19.jpeg",
+        songs: [
+          { id: "GNtIvGrqAZE", title: "Hoodie", comments: [] }
+        ]
+      },
+      {
+        artist: "Adele", image: "assets/images20.jpeg",
+        songs: [
+          { id: "rYEDA3JcQqw", title: "Rolling in the Deep", comments: [] },
+          { id: "-hzFTJDJGkQ", title: "Love In The Dark", comments: [] },
+          { id: "fk4BbF7B29w", title: "Send My Love (To Your New Lover)", comments: [] },
+          { id: "hLQl3WQQoQ0", title: "Someone Like You", comments: [] },
+          { id: "a1IuJLebHgM", title: "When We Were Young", comments: [] }
+        ]
+      },
+      {
+        artist: "Aurora", image: "assets/All-my-demons-greeting-me-as-a-friend-aurora.webp",
+        songs: [
+          { id: "_Mc_OM5oNA8", title: "The Seed", comments: [] },
+          { id: "d_HlPboLRL8", title: "Runaway", comments: [] },
+          { id: "otRKDDguvyg", title: "Black Water Lilies", comments: [] }
+        ]
+      },
+      { 
+        artist: "Katy Perry", image: "assets/images21.jpeg",
+        songs: [
+          { id: "wdGZBRAwW74", title: "Thinking Of You", comments: [] },
+          { id: "Ahha3Cqe_fk", title: "The One That Got Away", comments: [] },
+          { id: "XjwZAa2EjKA", title: "Unconditionally", comments: [] },
+          { id: "k0BWlvnBmIE", title: "Wide Awake", comments: [] },
+          { id: "sQEgklEwhSo", title: "Harleys In Hawaii", comments: [] },
+          { id: "BewrUtHF2Zc", title: "Legendary Lovers", comments: [] },
+          { id: "tAp9BKosZXs", title: "I Kissed A Girl", comments: [] },
+          { id: "KlyXNRrsk4A", title: "Last Friday Night (T.G.I.F.)", comments: [] }
+        ]
+      }
+    ];
+
+    /* ==========================================================================
+       2. DSA: INVERTED INDEX ENGINE FOR O(K) FAST SEARCHING
+       ========================================================================== */
+    class SearchEngine {
+      constructor() {
+        this.index = new Map();
+        this.allIds = new Set();
+      }
+      
+      tokenize(str) {
+        return str.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+      }
+
+      buildIndex(data) {
+        data.forEach((artistObj, aIndex) => {
+          artistObj.songs.forEach((song, sIndex) => {
+            const docId = `${aIndex}-${sIndex}`;
+            this.allIds.add(docId);
+            const tokens = this.tokenize(`${artistObj.artist} ${song.title}`);
+            
+            // Build n-grams/substrings for autocomplete capabilities
+            tokens.forEach(token => {
+              for (let i = 1; i <= token.length; i++) {
+                const prefix = token.substring(0, i);
+                if (!this.index.has(prefix)) this.index.set(prefix, new Set());
+                this.index.get(prefix).add(docId);
+              }
+            });
+          });
+        });
+      }
+
+      search(query) {
+        if (!query.trim()) return Array.from(this.allIds);
+        const tokens = this.tokenize(query);
+        if (tokens.length === 0) return Array.from(this.allIds);
+        
+        let resultIds = null;
+        for (const token of tokens) {
+          const matchSet = this.index.get(token);
+          if (!matchSet) return []; // AND logic: if one token misses, return empty
+          if (!resultIds) {
+            resultIds = new Set(matchSet);
+          } else {
+            resultIds = new Set([...resultIds].filter(x => matchSet.has(x)));
+          }
+        }
+        return Array.from(resultIds);
+      }
+    }
+
+    const searchEngine = new SearchEngine();
+    let selectedFilter = "ALL";
+    let ytPlayers = {}; 
+
+    /* ==========================================================================
+       3. SYSTEM INITIALIZATION & PERFORMANCE OBSERVERS
+       ========================================================================== */
+    
+    // Intersection Observer for O(1) Lazy Loading Memory Management
+    const lazyImageObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          img.src = img.dataset.src;
+          img.onload = () => img.classList.add('loaded');
+          observer.unobserve(img);
+        }
+      });
+    }, { rootMargin: "200px 0px" }); // Load 200px before scrolling into view
+
+    function initSystem() {
+      searchEngine.buildIndex(artistsData);
+      
+      let trackCount = 0;
+      artistsData.forEach(a => trackCount += a.songs.length);
+      document.getElementById("totalArtistsBadge").textContent = artistsData.length;
+      document.getElementById("totalTracksBadge").textContent = trackCount;
+
+      renderSidebar();
+      renderChips();
+      
+      // Global Event Delegation for dynamic elements
+      document.getElementById("musicContainer").addEventListener("click", e => {
+        const facade = e.target.closest('.video-facade-container');
+        if (facade) playVideo(facade);
+        
+        const toggleBtn = e.target.closest('.toggle-comments-btn');
+        if (toggleBtn) toggleComments(toggleBtn.dataset.vid);
+      });
+    }
+
+    /* ==========================================================================
+       4. BATCH DOM RENDERING (Hardware Accelerated)
+       ========================================================================== */
+    function escapeHTML(str) {
+      return String(str).replace(/[&<>'"]/g, tag => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[tag] || tag));
+    }
+
+    function renderPlaylists(query = "") {
+      requestAnimationFrame(() => {
+        const container = document.getElementById("musicContainer");
+        const docFrag = document.createDocumentFragment();
+        
+        const matchedDocIds = searchEngine.search(query);
+        const matchSet = new Set(matchedDocIds);
+        
+        let totalMatches = 0;
+
+        artistsData.forEach((artist, aIndex) => {
+          if (selectedFilter !== "ALL" && aIndex.toString() !== selectedFilter) return;
+
+          const activeSongs = artist.songs.filter((_, sIndex) => matchSet.has(`${aIndex}-${sIndex}`));
+          if (activeSongs.length === 0) return;
+
+          totalMatches += activeSongs.length;
+          const section = document.createElement("section");
+          section.className = "artist-section";
+          section.id = `artist-${aIndex}`;
+
+          let html = `
+            <div class="artist-header-card">
+              <img src="${artist.image}" alt="${escapeHTML(artist.artist)}" class="artist-avatar-lg" loading="lazy" />
+              <div class="artist-meta">
+                <h3>${escapeHTML(artist.artist)}</h3>
+                <span>${activeSongs.length} Track${activeSongs.length > 1 ? 's' : ''}</span>
+              </div>
+            </div>
+            <div class="music-grid">
+          `;
+
+          activeSongs.forEach((track) => {
+            const cleanId = track.id.replace('?', '');
+            const safeTitle = escapeHTML(track.title);
+            
+            // Build Comments HTML
+            let commentsHTML = track.comments.map(c => `
+              <div class="comment-item">
+                <div class="comment-author">${escapeHTML(c.author)} <span class="comment-date">${c.date}</span></div>
+                <div>${escapeHTML(c.text)}</div>
+              </div>
+            `).join('');
+
+            html += `
+              <div class="music-card" style="animation-delay: ${Math.random() * 0.2}s">
+                <div class="video-facade-container" data-vid="${cleanId}" data-title="${safeTitle}">
+                  <img data-src="https://img.youtube.com/vi/${cleanId}/maxresdefault.jpg" onerror="this.src='https://img.youtube.com/vi/${cleanId}/hqdefault.jpg'" alt="${safeTitle}" class="thumbnail" />
+                  <div class="play-overlay-btn"><i class="fa-solid fa-play"></i></div>
+                </div>
+                <div class="card-body">
+                  <h4 class="card-title">${safeTitle}</h4>
+                  <div class="card-artist-name"><i class="fa-solid fa-microphone-lines" style="font-size: 0.7rem;"></i> ${escapeHTML(artist.artist)}</div>
+                  <div class="card-footer">
+                    <button class="action-btn toggle-comments-btn" data-vid="${cleanId}"><i class="fa-regular fa-comment-dots"></i> Comment</button>
+                    <i class="fa-brands fa-youtube" style="color: #666; font-size: 1.2rem;"></i>
+                  </div>
+                  <div class="comments-panel" id="comments-${cleanId}">
+                    <div class="comment-list" id="list-${cleanId}">${commentsHTML}</div>
+                    <div class="comment-input-area">
+                      <input type="text" id="input-${cleanId}" placeholder="Add a comment..." onkeypress="if(event.key === 'Enter') addComment('${cleanId}')">
+                      <button onclick="addComment('${cleanId}')"><i class="fa-solid fa-paper-plane"></i></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+
+          html += `</div>`;
+          section.innerHTML = html;
+          docFrag.appendChild(section);
+        });
+
+        container.innerHTML = "";
+        if (totalMatches === 0) {
+          container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-compact-disc"></i><h3>No matches found</h3><p>Try refining your search terms.</p></div>`;
+        } else {
+          container.appendChild(docFrag);
+          // Apply lazy loading to newly created images
+          container.querySelectorAll('.thumbnail').forEach(img => lazyImageObserver.observe(img));
+        }
+      });
+    }
+
+    /* ==========================================================================
+       5. COMMENTS LOGIC (STATIC MEMORY)
+       ========================================================================== */
+    function toggleComments(vid) {
+      const panel = document.getElementById(`comments-${vid}`);
+      panel.classList.toggle('open');
+    }
+
+    function addComment(vid) {
+      const input = document.getElementById(`input-${vid}`);
+      const text = input.value.trim();
+      if (!text) return;
+
+      const list = document.getElementById(`list-${vid}`);
+      const dateStr = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date());
+      
+      const newComment = document.createElement('div');
+      newComment.className = 'comment-item';
+      newComment.innerHTML = `<div class="comment-author">Guest <span class="comment-date">${dateStr}</span></div><div>${escapeHTML(text)}</div>`;
+      
+      list.appendChild(newComment);
+      input.value = '';
+      
+      // Persist to static memory object
+      artistsData.forEach(a => {
+        const song = a.songs.find(s => s.id === vid);
+        if (song) song.comments.push({ author: "Guest", text, date: dateStr });
+      });
+    }
+
+    /* ==========================================================================
+       6. YOUTUBE API WITH AD-MITIGATION PARAMS
+       ========================================================================== */
+    function playVideo(container) {
+      const videoId = container.getAttribute('data-vid');
+      const title = container.getAttribute('data-title');
+      const existingPlayerId = container.getAttribute('data-player-id');
+
+      if (existingPlayerId && ytPlayers[existingPlayerId]) {
+        try { ytPlayers[existingPlayerId].playVideo(); return; } catch (e) {}
+      }
+
+      // O(N) cleanup of currently playing videos
+      Object.values(ytPlayers).forEach(p => {
+        if (p && typeof p.pauseVideo === 'function') try { p.pauseVideo(); } catch (e) {}
+      });
+
+      const playerId = 'yt-' + Math.random().toString(36).substring(2, 10);
+      container.setAttribute('data-player-id', playerId);
+      container.innerHTML = `<div id="${playerId}"></div>`;
+
+      // AD-MITIGATION: rel=0 (no related outside channel), modestbranding=1 (remove logo), iv_load_policy=3 (remove annotations)
+      if (window.YT && YT.Player) {
+        ytPlayers[playerId] = new YT.Player(playerId, {
+          videoId: videoId,
+          playerVars: { 'autoplay': 1, 'rel': 0, 'modestbranding': 1, 'iv_load_policy': 3, 'playsinline': 1, 'enablejsapi': 1 },
+          events: {
+            'onReady': e => e.target.playVideo(),
+            'onStateChange': e => { if (e.data === YT.PlayerState.ENDED) playNextVideo(container); }
+          }
+        });
+      } else {
+        container.innerHTML = `<iframe src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1&enablejsapi=1" title="${title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+      }
+    }
+
+    function playNextVideo(currentContainer) {
+      const allFacades = Array.from(document.querySelectorAll('.video-facade-container'));
+      const currentIndex = allFacades.indexOf(currentContainer);
+      if (currentIndex !== -1 && currentIndex + 1 < allFacades.length) {
+        const nextFacade = allFacades[currentIndex + 1];
+        nextFacade.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => playVideo(nextFacade), 500);
+      }
+    }
+
+    /* ==========================================================================
+       7. UI / EVENT HANDLERS
+       ========================================================================== */
+    function renderSidebar(filterQuery = "") {
+      const list = document.getElementById("artistNavList");
+      const q = filterQuery.toLowerCase();
+      let html = "";
+      
+      artistsData.forEach((a, idx) => {
+        if (!q || a.artist.toLowerCase().includes(q)) {
+          const active = selectedFilter === idx.toString() ? "active" : "";
+          html += `<li><a class="artist-nav-item ${active}" onclick="selectArtist('${idx}')">
+            <img src="${a.image}" alt="${escapeHTML(a.artist)}" class="artist-nav-avatar" loading="lazy" />
+            <span class="artist-nav-name">${escapeHTML(a.artist)}</span>
+          </a></li>`;
+        }
+      });
+      list.innerHTML = html || `<li style="padding:10px;color:var(--text-muted);font-size:0.8rem;">No artists found</li>`;
+    }
+
+    function renderChips() {
+      const container = document.getElementById("quickChipsContainer");
+      let html = `<button class="chip-btn ${selectedFilter === 'ALL' ? 'active' : ''}" onclick="selectArtist('ALL')">All Artists</button>`;
+      artistsData.forEach((a, idx) => {
+        html += `<button class="chip-btn ${selectedFilter === idx.toString() ? 'active' : ''}" onclick="selectArtist('${idx}')">${escapeHTML(a.artist)}</button>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function selectArtist(idx) {
+      selectedFilter = idx;
+      document.getElementById("searchInput").value = "";
+      renderChips();
+      renderSidebar();
+      renderPlaylists();
+      closeSidebar();
+      
+      if (idx !== "ALL") {
+        setTimeout(() => {
+          const el = document.getElementById(`artist-${idx}`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    }
+
+    const debounce = (fn, delay) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); }; };
+    const handleGlobalSearch = debounce(() => renderPlaylists(document.getElementById("searchInput").value), 150);
+    function filterSidebarArtists() { renderSidebar(document.getElementById("sidebarSearchInput").value); }
+    
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("mobile-open");
+      document.getElementById("sidebarOverlay").classList.toggle("active");
+    }
+    function closeSidebar() {
+      document.getElementById("sidebar").classList.remove("mobile-open");
+      document.getElementById("sidebarOverlay").classList.remove("active");
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      initSystem();
+      renderPlaylists();
+    });
+  </script>
+</body>
+</html>
