@@ -1,5 +1,4 @@
 cd ~/My-Soundtrack
 git add .
-git commit -m "Your update message"
-git pull --rebase origin main
+git commit -m "Update code"
 git push origin main
